@@ -23,27 +23,32 @@ pub fn render_markdown<MSG>(md: &str) -> Vec<Node<MSG>> {
 
 /// collections of plugins to be run during the processing of markdown
 #[allow(missing_debug_implementations)]
-pub struct Plugins<MSG> {
+pub struct Plugins<'a, MSG> {
     /// this a function where it is run when a code fence block is detected.
     /// Return an optional new node as a result.
     /// Should return none if the plugin can not process it.
-    pub code_fence_processor: Option<fn(Option<&str>, &str) -> Option<Node<MSG>>>,
+    pub code_fence_processor: Option<Box<dyn Fn(Option<&str>, &str) -> Option<Node<MSG>> + 'a>>,
     /// this is executed for each node in the inline html
     /// Returns a derivative new node if applicable.
     /// Must return None if it the node isn't suitable to be processed.
-    pub inline_html_processor: Option<fn(&Node<MSG>) -> Option<Node<MSG>>>,
+    pub inline_html_processor: Option<Box<dyn Fn(&Node<MSG>) -> Option<Node<MSG>> + 'a>>,
+    /// this is executed for each tag encountered from pulldown-cmark
+    pub tag_processor: Option<Box<dyn Fn(&Tag) -> Option<Node<MSG>> + 'a>>,
 }
 
-impl<MSG> Default for Plugins<MSG> {
+impl<'a, MSG> Default for Plugins<'a, MSG> {
     fn default() -> Self {
         Self {
             code_fence_processor: None,
             inline_html_processor: None,
+            tag_processor: None,
         }
     }
 }
 
-pub(crate) struct MarkdownParser<MSG> {
+/// Markdown parser objects, markdown parse state are stored here.
+#[allow(missing_debug_implementations)]
+pub struct MarkdownParser<'a, MSG> {
     /// contains the top level elements
     elems: Vec<Node<MSG>>,
     /// the elements that are processed
@@ -53,8 +58,7 @@ pub(crate) struct MarkdownParser<MSG> {
     /// if h1 is encountered
     is_title_heading: bool,
     /// if a text inside an h1 is encountered
-    #[allow(dead_code)]
-    pub(crate) title: Option<String>,
+    pub title: Option<String>,
     /// indicates if the text is inside a code block
     in_code_block: bool,
     /// current code fence, ie: it will be `js` if code block is: ```js
@@ -63,10 +67,10 @@ pub(crate) struct MarkdownParser<MSG> {
     in_table_head: bool,
     /// a flag if the previous event is inline html or not
     is_prev_inline_html: bool,
-    plugins: Plugins<MSG>,
+    plugins: Plugins<'a, MSG>,
 }
 
-impl<MSG> Default for MarkdownParser<MSG> {
+impl<'a, MSG> Default for MarkdownParser<'a, MSG> {
     fn default() -> Self {
         MarkdownParser {
             elems: vec![],
@@ -83,15 +87,16 @@ impl<MSG> Default for MarkdownParser<MSG> {
     }
 }
 
-impl<MSG> MarkdownParser<MSG> {
+impl<'a, MSG> MarkdownParser<'a, MSG> {
     /// create a markdown parser from a markdown content and the link_lookup replacement
-    pub(crate) fn from_md(md: &str) -> Self {
+    pub fn from_md(md: &str) -> Self {
         let mut md_parser = Self::default();
         md_parser.do_parse(md);
         md_parser
     }
 
-    pub(crate) fn with_plugins(md: &str, plugins: Plugins<MSG>) -> Self {
+    /// create a markdown parser from a markdown content with a plugin for custom processing
+    pub fn with_plugins(md: &str, plugins: Plugins<'a, MSG>) -> Self {
         let mut md_parser = Self::default();
         md_parser.plugins = plugins;
         md_parser.do_parse(md);
@@ -118,7 +123,7 @@ impl<MSG> MarkdownParser<MSG> {
     }
 
     /// return 1 node, wrapping the the top-level node where there are more than 1.
-    pub(crate) fn node(&self) -> Node<MSG> {
+    pub fn node(&self) -> Node<MSG> {
         if self.elems.len() == 1 {
             self.elems[0].clone()
         } else {
@@ -147,8 +152,17 @@ impl<MSG> MarkdownParser<MSG> {
             match ev {
                 // create a tag and push it to the spine
                 Event::Start(ref tag) => {
-                    let start = self.make_tag(&tag);
-                    self.spine.push(start);
+                    if let Some(ref tag_processor) = self.plugins.tag_processor {
+                        if let Some(new_start) = tag_processor(&tag) {
+                            self.spine.push(new_start);
+                        } else {
+                            let start = self.make_tag(&tag);
+                            self.spine.push(start);
+                        }
+                    } else {
+                        let start = self.make_tag(&tag);
+                        self.spine.push(start);
+                    }
                 }
                 Event::Text(ref content) => {
                     if self.is_title_heading {
@@ -161,7 +175,7 @@ impl<MSG> MarkdownParser<MSG> {
                             } else {
                                 empty_attr()
                             }],
-                            vec![if let Some(code_fence_processor) =
+                            vec![if let Some(ref code_fence_processor) =
                                 self.plugins.code_fence_processor
                             {
                                 let new_node = code_fence_processor(
@@ -369,7 +383,7 @@ impl<MSG> MarkdownParser<MSG> {
     /// if it the plugin produces a Node it will be return as is.
     /// If the plugin doesn't produce a node, return the current node
     fn run_inline_processor(&self, mut node: Node<MSG>) -> Node<MSG> {
-        if let Some(inline_html_processor) = self.plugins.inline_html_processor {
+        if let Some(ref inline_html_processor) = self.plugins.inline_html_processor {
             let new_node = inline_html_processor(&node);
             if let Some(new_node) = new_node {
                 return new_node;

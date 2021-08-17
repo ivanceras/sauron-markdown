@@ -9,5 +9,6 @@
     unused_import_braces
 )]
 //! a library to parse markdown and convert it into sauron virtual node
-pub use markdown::{markdown, markdown_with_plugins, render_markdown, Plugins};
+pub use markdown::{markdown, markdown_with_plugins, render_markdown, MarkdownParser, Plugins};
+pub use pulldown_cmark::Tag;
 mod markdown;
