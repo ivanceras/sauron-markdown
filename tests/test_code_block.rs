@@ -25,17 +25,13 @@ fn main(){
         "#;
     let plugins = Plugins {
         code_fence_processor: None,
-        inline_html_processor: Some(|node| {
+        tag_processor: None,
+        inline_html_processor: Some(Box::new(|node| {
             if let Some(tag) = node.tag() {
                 match *tag {
                     "code" => {
-                        println!(
-                            "---->>> YAYY we are looking for this code: {:#?}",
-                            node
-                        );
-                        let children = node
-                            .get_children()
-                            .expect("code node must have children");
+                        println!("---->>> YAYY we are looking for this code: {:#?}", node);
+                        let children = node.get_children().expect("code node must have children");
                         let mut buffer = String::new();
                         // we collect all the next
                         for child in children {
@@ -45,10 +41,7 @@ fn main(){
                         }
                         let hl_code = code(
                             vec![class("highlighted")],
-                            vec![
-                                text(buffer),
-                                p(vec![], vec![text("--highlighted already")]),
-                            ],
+                            vec![text(buffer), p(vec![], vec![text("--highlighted already")])],
                         );
                         Some(hl_code)
                     }
@@ -61,7 +54,7 @@ fn main(){
                 println!("we dont process text nodes..");
                 None
             }
-        }),
+        })),
     };
     let node: Node<()> = markdown_with_plugins(md, plugins);
 

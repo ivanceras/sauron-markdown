@@ -302,7 +302,6 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
             Tag::Emphasis => html::em(vec![], vec![]),
             Tag::Strong => strong(vec![], vec![]),
             Tag::Strikethrough => s(vec![], vec![]),
-            // replace links using the link_lookup
             Tag::Link(_link_type, ref link_href, ref link_title) => a(
                 vec![
                     href(link_href.to_string()),
@@ -648,7 +647,7 @@ look like:
         let node: Node<()> = markdown_with_plugins(
             md,
             Plugins {
-                code_fence_processor: Some(|code_fence, code| {
+                code_fence_processor: Some(Box::new(|code_fence, code| {
                     if let Some(code_fence) = code_fence {
                         match code_fence {
                             "bob" => {
@@ -665,7 +664,7 @@ look like:
                         println!("no code fence");
                         None
                     }
-                }),
+                })),
 
                 ..Default::default()
             },
