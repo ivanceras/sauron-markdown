@@ -18,5 +18,5 @@ ammonia = "3"
 svgbob = "0.5.5"
 
 
-#[patch.crates-io]
-#sauron = {version = "0.40.0", path = "../sauron"}
+[patch.crates-io]
+sauron = { git = "https://github.com/ivanceras/sauron.git", branch = "develop" }
