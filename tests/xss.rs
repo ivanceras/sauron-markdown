@@ -1,7 +1,6 @@
 use sauron::prelude::*;
 
-//#[test]
-//TODO: FIXME
+#[test]
 fn anchor() {
     let md = r#"
 <a name="n" href="javascript:alert('xss')">*you*</a>
@@ -11,17 +10,17 @@ fn anchor() {
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
     println!("view: {}", buffer);
-    assert_eq!(
-        buffer,
-        r#"<p>
-    <a rel="noopener noreferrer"></a>
-    <span class="font-italic">you</span>
-</p>"#
-    );
+
+    let expected = r#"<p>
+    <em>
+        <a rel="noopener noreferrer"></a>
+        you
+    </em>
+</p>"#;
+    assert_eq!(expected, buffer);
 }
 
-//#[test]
-//TODO:FIXME
+#[test]
 fn blockqupte_xss() {
     let md = r#"
 > hello<a name="n"
@@ -32,15 +31,14 @@ fn blockqupte_xss() {
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
     println!("view: {}", buffer);
-    assert_eq!(
-        buffer,
-        r#"<blockquote class="blockquote">
+    let expected = r#"<blockquote>
     <p>
         hello
-        <a rel="noopener noreferrer"></a>
         href="javascript:alert('xss')"&gt;
-        <span class="font-italic">you</span>
+        <a rel="noopener noreferrer"></a>
+        <em>you</em>
     </p>
-</blockquote>"#
-    );
+</blockquote>"#;
+
+    assert_eq!(expected, buffer);
 }

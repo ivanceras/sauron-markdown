@@ -6,6 +6,8 @@ use std::{
     iter::FromIterator,
 };
 
+mod html_parser;
+
 /// convert markdown text to Node
 pub fn markdown<MSG>(md: &str) -> Node<MSG> {
     MarkdownParser::from_md(md).node()
@@ -370,7 +372,7 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
             .generic_attributes(allowed_attributes)
             .clean(&inline_html)
             .to_string();
-        if let Ok(nodes) = sauron::parser::parse_simple(&clean_html) {
+        if let Ok(nodes) = html_parser::parse_simple(&clean_html) {
             for node in nodes {
                 let new_node = self.run_inline_processor(node);
                 self.add_node(new_node);

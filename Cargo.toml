@@ -13,10 +13,16 @@ keywords = ["md", "sauron", "node"]
 sauron = { version = "0.40" }
 pulldown-cmark = { version = "0.8"}
 ammonia = "3"
+html5ever = {version = "0.25"}
+markup5ever_rcdom = { version = "0.1" }
+thiserror = "1.0"
+log = "0.4"
+once_cell = "1.8"
 
 [dev-dependencies]
 svgbob = "0.5.5"
 
 
 [patch.crates-io]
-sauron = { git = "https://github.com/ivanceras/sauron.git", branch = "develop" }
+sauron = { version = "0.40", git = "https://github.com/ivanceras/sauron.git", branch = "develop" }
+svgbob = { git = "https://github.com/ivanceras/svgbob.git", branch = "master" }
