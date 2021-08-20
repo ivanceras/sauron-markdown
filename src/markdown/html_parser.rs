@@ -1,3 +1,5 @@
+//! An html parser used for parsing inline html used in markdown
+//!
 use html5ever::{
     local_name, namespace_url, ns, parse_document, parse_fragment, tendril::TendrilSink, QualName,
 };
@@ -52,19 +54,30 @@ static ALL_ATTRS: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
     )
 });
 
-fn match_attribute(att: &str) -> Option<&'static str> {
+static SELF_CLOSING_TAGS: Lazy<HashSet<&&'static str>> =
+    Lazy::new(|| HashSet::from_iter(HTML_SC_TAGS.iter()));
+
+/// return the matching attribute
+pub fn match_attribute(att: &str) -> Option<&'static str> {
     ALL_ATTRS
         .iter()
         .find(|(_k, v)| v == &&att)
         .map(|(_k, v)| *v)
 }
 
-fn match_tag(tag: &str) -> Option<&'static str> {
+/// return the matching tag
+pub fn match_tag(tag: &str) -> Option<&'static str> {
     ALL_HTML_TAGS
         .iter()
         .chain(ALL_SVG_TAGS.iter())
         .find(|t| **t == &tag)
         .map(|t| **t)
+}
+
+/// Returns true if this html tag is self closing
+#[inline]
+pub fn is_self_closing(tag: &str) -> bool {
+    SELF_CLOSING_TAGS.contains(&tag)
 }
 
 fn extract_attributes<MSG>(attrs: &Vec<html5ever::Attribute>) -> Vec<Attribute<MSG>> {
@@ -150,7 +163,7 @@ pub enum ParseError {
 }
 
 /// Parse html string and convert it into sauron Node
-pub fn parse<MSG>(html: &str) -> Result<Option<Node<MSG>>, ParseError> {
+fn parse<MSG>(html: &str) -> Result<Option<Node<MSG>>, ParseError> {
     let html_start = html.trim_start();
     let parser = if html_start.starts_with("<html") || html_start.starts_with("<!DOCTYPE") {
         parse_document(RcDom::default(), Default::default())

@@ -6,7 +6,7 @@ use std::{
     iter::FromIterator,
 };
 
-mod html_parser;
+pub mod html_parser;
 
 /// convert markdown text to Node
 pub fn markdown<MSG>(md: &str) -> Node<MSG> {
