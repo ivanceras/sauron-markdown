@@ -34,6 +34,7 @@ fn blockqupte_xss() {
     let expected = r#"<blockquote>
     <p>
         hello
+        <!--separator-->
         href="javascript:alert('xss')"&gt;
         <a rel="noopener noreferrer"></a>
         <em>you</em>

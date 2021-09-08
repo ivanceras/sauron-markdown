@@ -72,13 +72,10 @@ Duplicated footnote reference[^second].
 [^second]: Footnote text.
         "#;
 
-    let expected = "<p>\n    <h3>\n        <a href=\"https://github.com/markdown-it/markdown-it-footnote\" title=\"\">Footnotes</a>\n    </h3>\n    <p>\n        Footnote 1 link\n        <sup class=\"footnote-reference\">\n            <a href=\"#first\">1</a>\n        </sup>\n        .\n    </p>\n    <p>\n        Footnote 2 link\n        <sup class=\"footnote-reference\">\n            <a href=\"#second\">2</a>\n        </sup>\n        .\n    </p>\n    <p>\n        Inline footnote^\n        [\n        Text of inline footnote\n        ]\n         definition.\n    </p>\n    <p>\n        Duplicated footnote reference\n        <sup class=\"footnote-reference\">\n            <a href=\"#second\">2</a>\n        </sup>\n        .\n    </p>\n    <footer class=\"footnote-definition\" id=\"first\">\n        <sup class=\"footnote-label\">1</sup>\n        <p>\n            Footnote \n            <strong>can have markup</strong>\n        </p>\n    </footer>\n    <pre>\n        <code>and multiple paragraphs.\n</code>\n    </pre>\n    <footer class=\"footnote-definition\" id=\"second\">\n        <sup class=\"footnote-label\">2</sup>\n        <p>Footnote text.</p>\n    </footer>\n</p>";
+    let expected = "<p><h3><a href=\"https://github.com/markdown-it/markdown-it-footnote\" title=\"\">Footnotes</a></h3><p>Footnote 1 link<sup class=\"footnote-reference\"><a href=\"#first\">1</a></sup>.</p><p>Footnote 2 link<sup class=\"footnote-reference\"><a href=\"#second\">2</a></sup>.</p><p>Inline footnote^<!--separator-->[<!--separator-->Text of inline footnote<!--separator-->]<!--separator--> definition.</p><p>Duplicated footnote reference<sup class=\"footnote-reference\"><a href=\"#second\">2</a></sup>.</p><footer class=\"footnote-definition\" id=\"first\"><sup class=\"footnote-label\">1</sup><p>Footnote <strong>can have markup</strong></p></footer><pre><code>and multiple paragraphs.\n</code></pre><footer class=\"footnote-definition\" id=\"second\"><sup class=\"footnote-label\">2</sup><p>Footnote text.</p></footer></p>";
     let view: Node<()> = markdown(md);
 
-    let mut buffer = String::new();
-    view.render(&mut buffer).unwrap();
-    println!("view: {}", buffer);
-    assert_eq!(expected, buffer);
+    assert_eq!(expected, view.render_to_string());
 }
 
 #[test]
