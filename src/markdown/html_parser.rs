@@ -65,6 +65,14 @@ pub fn match_attribute(att: &str) -> Option<&'static str> {
         .map(|(_k, v)| *v)
 }
 
+/// given the attribute return the function name
+pub fn attribute_function(att: &str) -> Option<&'static str> {
+    ALL_ATTRS
+        .iter()
+        .find(|(_k, v)| v == &&att)
+        .map(|(k, _v)| *k)
+}
+
 /// return the matching tag
 pub fn match_tag(tag: &str) -> Option<&'static str> {
     ALL_HTML_TAGS
