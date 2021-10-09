@@ -11,7 +11,7 @@ keywords = ["md", "sauron", "node"]
 
 [dependencies]
 #sauron = { version = "0.43", default-features = false, features = ["with-node-macro"] }
-sauron = { version = "0.43", path = "../sauron" }
+sauron = { version = "0.43.9", path = "../sauron" }
 pulldown-cmark = { version = "0.8"}
 ammonia = "3"
 html5ever = {version = "0.25"}

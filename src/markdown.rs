@@ -273,11 +273,11 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                 match codeblock {
                     CodeBlockKind::Indented => {
                         self.code_fence = None;
-                        pre(vec![], vec![])
+                        code(vec![], vec![])
                     }
                     CodeBlockKind::Fenced(fence) => {
                         self.code_fence = Some(fence.to_string());
-                        pre(vec![], vec![])
+                        code(vec![], vec![])
                     }
                 }
             }
