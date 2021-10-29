@@ -172,12 +172,12 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                     }
                     if self.in_code_block {
                         self.add_node(code(
-                            vec![if let Some(ref code_fence) = self.code_fence {
-                                class(code_fence)
+                            if let Some(ref code_fence) = self.code_fence {
+                                vec![class(code_fence)]
                             } else {
-                                empty_attr()
-                            }],
-                            vec![if let Some(ref code_fence_processor) =
+                                vec![]
+                            },
+                            if let Some(ref code_fence_processor) =
                                 self.plugins.code_fence_processor
                             {
                                 let new_node = code_fence_processor(
@@ -188,16 +188,16 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                                     &content,
                                 );
                                 if let Some(new_node) = new_node {
-                                    new_node
+                                    vec![new_node]
                                 } else {
                                     // the code processor didn't detect it, turn it into a text
                                     // node
-                                    text(content)
+                                    vec![text(content)]
                                 }
                             } else {
                                 // no code fence processor just turn it into a text node
-                                text(content)
-                            }],
+                                vec![text(content)]
+                            },
                         ));
                     } else {
                         let content = ammonia::clean(&*content);
@@ -205,10 +205,10 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                     }
                 }
                 Event::SoftBreak => self.add_node(text("\n")),
-                Event::HardBreak => self.add_node(br(vec![], vec![])),
+                Event::HardBreak => self.add_node(br([], [])),
                 Event::Code(ref code_str) => {
                     let code_str = ammonia::clean(&*code_str);
-                    self.add_node(code(vec![], vec![text(code_str)]))
+                    self.add_node(code([], [text(code_str)]))
                 }
                 // ISSUE: html is called for each encountered html tags
                 // this needs to be accumulated before it can be parse into actual node
@@ -220,15 +220,15 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                     let len = self.numbers.len() + 1;
                     let number: usize = *self.numbers.entry(name.to_string()).or_insert(len);
                     self.add_node(sup(
-                        vec![class("footnote-reference")],
-                        vec![a(vec![href(format!("#{}", name))], vec![text(number)])],
+                        [class("footnote-reference")],
+                        [a([href(format!("#{}", name))], [text(number)])],
                     ));
                 }
                 Event::Rule => {
-                    self.add_node(hr(vec![], vec![]));
+                    self.add_node(hr([], []));
                 }
                 Event::TaskListMarker(ref value) => {
-                    self.add_node(input(vec![r#type("checkbox"), checked(*value)], vec![]));
+                    self.add_node(input([r#type("checkbox"), checked(*value)], []));
                 }
                 // end event
                 Event::End(ref tag) => self.close_tag(&tag),
@@ -250,80 +250,80 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
 
     fn make_tag(&mut self, tag: &Tag) -> Node<MSG> {
         match tag {
-            Tag::Paragraph => p(vec![], vec![]),
+            Tag::Paragraph => p([], []),
             Tag::Heading(n) => {
                 assert!(*n > 0);
                 assert!(*n < 7);
                 match n {
                     1 => {
                         self.is_title_heading = true;
-                        h1(vec![], vec![])
+                        h1([], [])
                     }
-                    2 => h2(vec![], vec![]),
-                    3 => h3(vec![], vec![]),
-                    4 => h4(vec![], vec![]),
-                    5 => h5(vec![], vec![]),
-                    6 => h6(vec![], vec![]),
+                    2 => h2([], []),
+                    3 => h3([], []),
+                    4 => h4([], []),
+                    5 => h5([], []),
+                    6 => h6([], []),
                     _ => unreachable!(),
                 }
             }
-            Tag::BlockQuote => blockquote(vec![], vec![]),
+            Tag::BlockQuote => blockquote([], []),
             Tag::CodeBlock(codeblock) => {
                 self.in_code_block = true;
                 match codeblock {
                     CodeBlockKind::Indented => {
                         self.code_fence = None;
-                        code(vec![], vec![])
+                        code([], [])
                     }
                     CodeBlockKind::Fenced(fence) => {
                         self.code_fence = Some(fence.to_string());
-                        code(vec![], vec![])
+                        code([], [])
                     }
                 }
             }
-            Tag::List(None) => ul(vec![], vec![]),
-            Tag::List(Some(1)) => ol(vec![], vec![]),
-            Tag::List(Some(ref start)) => ol(vec![attr("start", *start)], vec![]),
+            Tag::List(None) => ul([], []),
+            Tag::List(Some(1)) => ol([], []),
+            Tag::List(Some(ref start)) => ol([attr("start", *start)], []),
             Tag::Item => li(vec![], vec![]),
-            Tag::Table(_alignment) => table(vec![], vec![]),
+            Tag::Table(_alignment) => table([], []),
             Tag::TableHead => {
                 self.in_table_head = true;
-                tr(vec![], vec![])
+                tr([], [])
             }
             Tag::TableRow => {
                 self.in_table_head = false;
-                tr(vec![], vec![])
+                tr([], [])
             }
             Tag::TableCell => {
                 if self.in_table_head {
-                    th(vec![], vec![])
+                    th([], [])
                 } else {
-                    td(vec![], vec![])
+                    td([], [])
                 }
             }
-            Tag::Emphasis => html::em(vec![], vec![]),
-            Tag::Strong => strong(vec![], vec![]),
-            Tag::Strikethrough => s(vec![], vec![]),
+            Tag::Emphasis => html::em([], []),
+            Tag::Strong => strong([], []),
+            Tag::Strikethrough => s([], []),
             Tag::Link(_link_type, ref link_href, ref link_title) => a(
-                vec![
+                [
                     href(link_href.to_string()),
                     html::attributes::title(link_title.to_string()),
                 ],
-                vec![],
+                [],
             ),
             Tag::Image(_link_type, ref image_src, ref image_title) => img(
-                vec![
+                [
                     src(image_src.to_string()),
                     html::attributes::title(image_title.to_string()),
                 ],
-                vec![],
+                [],
             ),
             Tag::FootnoteDefinition(name) => {
                 let len = self.numbers.len() + 1;
                 let number = self.numbers.entry(name.to_string()).or_insert(len);
                 footer(
-                    vec![class("footnote-definition"), id(name.to_string())],
-                    vec![sup(vec![class("footnote-label")], vec![text(number)])],
+                    [class("footnote-definition"), id(name.to_string())],
+                    [sup([class("footnote-label")], [text(number)])],
                 )
             }
         }
