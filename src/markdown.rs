@@ -1,11 +1,12 @@
 use pulldown_cmark::{Alignment, CodeBlockKind, Event, Options, Parser, Tag};
 use sauron::html;
 use sauron::prelude::*;
-use std::{
-    collections::{HashMap, HashSet},
-    iter::FromIterator,
-};
+use std::collections::HashMap;
 
+#[cfg(feature = "ammonia")]
+use std::{collections::HashSet, iter::FromIterator};
+
+#[cfg(feature = "html-parser")]
 pub mod html_parser;
 
 /// convert markdown text to Node
@@ -200,6 +201,7 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                             },
                         ));
                     } else {
+                        #[cfg(feature = "ammonia")]
                         let content = ammonia::clean(&*content);
                         self.add_node(text(content));
                     }
@@ -207,6 +209,7 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                 Event::SoftBreak => self.add_node(text("\n")),
                 Event::HardBreak => self.add_node(br([], [])),
                 Event::Code(ref code_str) => {
+                    #[cfg(feature = "ammonia")]
                     let code_str = ammonia::clean(&*code_str);
                     self.add_node(code([], [text(code_str)]))
                 }
@@ -367,22 +370,35 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
     }
 
     fn process_inline_html(&mut self, inline_html: &str) {
-        let allowed_attributes = HashSet::from_iter(vec!["class"]);
-        let clean_html = ammonia::Builder::default()
-            .generic_attributes(allowed_attributes)
+        #[cfg(feature = "ammonia")]
+        let _clean_html = ammonia::Builder::default()
+            .generic_attributes(HashSet::from_iter(vec!["class"]))
             .clean(&inline_html)
             .to_string();
-        if let Ok(nodes) = html_parser::parse_simple(&clean_html) {
+
+        #[cfg(not(feature = "ammonia"))]
+        let _clean_html = inline_html.to_string();
+
+        #[cfg(feature = "html-parser")]
+        if let Ok(nodes) = html_parser::parse_simple(&_clean_html) {
             for node in nodes {
                 let new_node = self.run_inline_processor(node);
                 self.add_node(new_node);
             }
+        }
+        // if no html-parser is not included,
+        // then just escape the html
+        #[cfg(not(feature = "html-parser"))]
+        {
+            let escaped_text = html_escape::encode_text(inline_html);
+            self.add_node(text(escaped_text));
         }
     }
 
     /// Run a plugin processor to elements in inline html
     /// if it the plugin produces a Node it will be return as is.
     /// If the plugin doesn't produce a node, return the current node
+    #[allow(unused)]
     fn run_inline_processor(&self, mut node: Node<MSG>) -> Node<MSG> {
         if let Some(ref inline_html_processor) = self.plugins.inline_html_processor {
             let new_node = inline_html_processor(&node);

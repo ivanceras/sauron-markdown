@@ -10,15 +10,20 @@ documentation = "https://docs.rs/sauron-markdown"
 keywords = ["md", "sauron", "node"]
 
 [dependencies]
-sauron = { version = "0.43" }
-#sauron = { version = "0.43.9", path = "../sauron" }
+#sauron = { version = "0.43" }
+sauron = { version = "0.43.9", path = "../sauron" }
 pulldown-cmark = { version = "0.8"}
-ammonia = "3"
-html5ever = {version = "0.25"}
-markup5ever_rcdom = { version = "0.1" }
+ammonia = { version = "3", optional = true }
+html5ever = {version = "0.25", optional = true}
+markup5ever_rcdom = { version = "0.1", optional = true }
 thiserror = "1.0"
 log = "0.4"
 once_cell = "1.8"
+html-escape = "0.2.9"
+
+[features]
+default = ["ammonia", "html-parser"]
+html-parser = ["html5ever", "markup5ever_rcdom"]
 
 [dev-dependencies]
 svgbob = "0.6"
