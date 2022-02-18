@@ -13,7 +13,6 @@ keywords = ["md", "sauron", "node"]
 sauron = { version = "0.44" }
 #sauron = { version = "0.43.9", path = "../sauron" }
 pulldown-cmark = { version = "0.8"}
-ammonia = { version = "3", optional = true }
 thiserror = "1.0"
 log = "0.4"
 once_cell = "1.8"
@@ -21,7 +20,7 @@ html-escape = "0.2.9"
 rphtml = "0.5.5"
 
 [features]
-default = ["ammonia"]
+default = ["parse-html"]
 parse-html = []
 
 [dev-dependencies]

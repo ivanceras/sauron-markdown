@@ -201,18 +201,12 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
                             },
                         ));
                     } else {
-                        #[cfg(feature = "ammonia")]
-                        let content = ammonia::clean(&*content);
                         self.add_node(text(content));
                     }
                 }
                 Event::SoftBreak => self.add_node(text("\n")),
                 Event::HardBreak => self.add_node(br([], [])),
-                Event::Code(ref code_str) => {
-                    #[cfg(feature = "ammonia")]
-                    let code_str = ammonia::clean(&*code_str);
-                    self.add_node(code([], [text(code_str)]))
-                }
+                Event::Code(ref code_str) => self.add_node(code([], [text(code_str)])),
                 // ISSUE: html is called for each encountered html tags
                 // this needs to be accumulated before it can be parse into actual node
                 Event::Html(ref html) => {
@@ -370,17 +364,8 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
     }
 
     fn process_inline_html(&mut self, inline_html: &str) {
-        #[cfg(feature = "ammonia")]
-        let _clean_html = ammonia::Builder::default()
-            .generic_attributes(HashSet::from_iter(vec!["class"]))
-            .clean(&inline_html)
-            .to_string();
-
-        #[cfg(not(feature = "ammonia"))]
-        let _clean_html = inline_html.to_string();
-
         #[cfg(feature = "parse-html")]
-        if let Ok(nodes) = html_parser::parse_simple(&_clean_html) {
+        if let Ok(nodes) = html_parser::parse_simple(&inline_html) {
             for node in nodes {
                 let new_node = self.run_inline_processor(node);
                 self.add_node(new_node);
@@ -388,7 +373,7 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
         }
         // if no html-parser is not included,
         // then just escape the html
-        #[cfg(not(feature = "html-parser"))]
+        #[cfg(not(feature = "parse-html"))]
         {
             let escaped_text = html_escape::encode_text(inline_html);
             self.add_node(text(escaped_text));
