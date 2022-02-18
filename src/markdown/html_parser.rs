@@ -1,13 +1,12 @@
 //! An html parser used for parsing inline html used in markdown
 //!
-use html5ever::{
-    local_name, namespace_url, ns, parse_document, parse_fragment, tendril::TendrilSink, QualName,
-};
-use markup5ever_rcdom::{Handle, NodeData, RcDom};
 use once_cell::sync::Lazy;
+use rphtml::config::ParseOptions;
+use rphtml::parser::Doc;
+use rphtml::parser::NodeType;
+use rphtml::types::BoxDynError;
 use sauron::prelude::*;
 use sauron::{
-    html,
     html::tags::{HTML_SC_TAGS, HTML_TAGS, HTML_TAGS_NON_COMMON, HTML_TAGS_WITH_MACRO_NON_COMMON},
     svg::tags::{SVG_TAGS, SVG_TAGS_NON_COMMON, SVG_TAGS_SPECIAL},
 };
@@ -15,6 +14,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::io;
 use std::iter::FromIterator;
+use std::ops::Deref;
 use thiserror::Error;
 
 /// All of the svg tags
@@ -88,77 +88,6 @@ pub fn is_self_closing(tag: &str) -> bool {
     SELF_CLOSING_TAGS.contains(&tag)
 }
 
-fn extract_attributes<MSG>(attrs: &Vec<html5ever::Attribute>) -> Vec<Attribute<MSG>> {
-    attrs
-        .iter()
-        .filter_map(|att| {
-            let key = att.name.local.to_string();
-            let value = att.value.to_string();
-            if let Some(attr) = match_attribute(&key) {
-                Some(html::attributes::attr(attr, value))
-            } else {
-                log::warn!("Not a standard html attribute: {}", key);
-                None
-            }
-        })
-        .collect()
-}
-
-fn process_children<MSG>(node: &Handle) -> Vec<Node<MSG>> {
-    node.children
-        .borrow()
-        .iter()
-        .filter_map(|child_node| process_node(child_node))
-        .collect()
-}
-
-fn process_node<MSG>(node: &Handle) -> Option<Node<MSG>> {
-    match &node.data {
-        NodeData::Text { ref contents } => {
-            let text_content = contents.borrow().to_string();
-            if text_content.trim().is_empty() {
-                None
-            } else {
-                Some(text(text_content))
-            }
-        }
-
-        NodeData::Element {
-            ref name,
-            ref attrs,
-            ..
-        } => {
-            let tag = name.local.to_string();
-            if let Some(html_tag) = match_tag(&tag) {
-                let children_nodes = process_children(node);
-                let attributes = extract_attributes(&attrs.borrow());
-                let is_self_closing = HTML_SC_TAGS.contains(&html_tag);
-                Some(html_element_self_closing(
-                    html_tag,
-                    attributes,
-                    children_nodes,
-                    is_self_closing,
-                ))
-            } else {
-                log::warn!("Invalid tag: {}", tag);
-                None
-            }
-        }
-        NodeData::Document => {
-            let mut children_nodes = process_children(node);
-            let children_len = children_nodes.len();
-            if children_len == 1 {
-                Some(children_nodes.remove(0))
-            } else if children_len == 2 {
-                Some(children_nodes.remove(1))
-            } else {
-                None
-            }
-        }
-        _ => None,
-    }
-}
-
 /// all the possible error when parsing html string
 #[derive(Debug, Error)]
 pub enum ParseError {
@@ -168,38 +97,102 @@ pub enum ParseError {
     /// formatting error
     #[error("{0}")]
     FmtError(#[from] fmt::Error),
-}
-
-/// Parse html string and convert it into sauron Node
-fn parse<MSG>(html: &str) -> Result<Option<Node<MSG>>, ParseError> {
-    let html_start = html.trim_start();
-    let parser = if html_start.starts_with("<html") || html_start.starts_with("<!DOCTYPE") {
-        parse_document(RcDom::default(), Default::default())
-    } else {
-        parse_fragment(
-            RcDom::default(),
-            Default::default(),
-            QualName::new(None, ns!(html), local_name!("div")),
-            vec![],
-        )
-    };
-
-    let dom = parser.one(html);
-    let node = process_node(&dom.document);
-    Ok(node)
+    /// rphtml specific error
+    #[error("{0}")]
+    RpHtmlError(#[from] BoxDynError),
+    /// the tag is not a valid html
+    #[error("Invalid tag: {0}")]
+    InvalidTag(String),
 }
 
 /// the document is not wrapped with html
-pub fn parse_simple<MSG>(html: &str) -> Result<Vec<Node<MSG>>, ParseError> {
-    if let Some(html) = parse(html)? {
-        if let Some(element) = html.take_element() {
-            assert_eq!(*element.tag(), "html");
-            Ok(element.take_children())
-        } else {
-            Ok(vec![])
-        }
+pub fn parse_simple<MSG>(html: &str) -> Result<Option<Node<MSG>>, ParseError> {
+    let doc = Doc::parse(
+        html,
+        ParseOptions {
+            case_sensitive_tagname: false,
+            allow_self_closing: true,
+            auto_fix_unclosed_tag: true,
+            auto_fix_unexpected_endtag: true,
+            auto_fix_unescaped_lt: true,
+        },
+    )?;
+    process_node(doc.get_root_node().borrow().deref())
+}
+
+fn process_node<MSG>(node: &rphtml::parser::Node) -> Result<Option<Node<MSG>>, ParseError> {
+    let content = if let Some(content) = &node.content {
+        let content = String::from_iter(content.iter());
+        Some(content)
     } else {
-        Ok(vec![])
+        None
+    };
+
+    let mut child_nodes = if let Some(childs) = &node.childs {
+        childs
+            .iter()
+            .flat_map(|child| process_node(child.borrow().deref()).ok().flatten())
+            .collect()
+    } else {
+        vec![]
+    };
+
+    match node.node_type {
+        NodeType::Tag => {
+            let tag = &node.meta.as_ref().expect("must have a tag");
+            let tag_name = String::from_iter(tag.borrow().name.iter());
+            if let Some(html_tag) = match_tag(&tag_name) {
+                let is_self_closing = HTML_SC_TAGS.contains(&html_tag);
+                let attributes: Vec<Attribute<MSG>> = tag
+                    .borrow()
+                    .attrs
+                    .iter()
+                    .filter_map(|attr| {
+                        attr.key
+                            .as_ref()
+                            .map(|key| {
+                                let key = String::from_iter(key.content.iter());
+                                if let Some(attr_key) = match_attribute(&key) {
+                                    let value = if let Some(value) = &attr.value {
+                                        let value = String::from_iter(value.content.iter());
+                                        AttributeValue::Simple(Value::from(value))
+                                    } else {
+                                        AttributeValue::Empty
+                                    };
+                                    Some(Attribute::new(None, attr_key, value))
+                                } else {
+                                    log::warn!("Not a standard html attribute: {}", key);
+                                    None
+                                }
+                            })
+                            .flatten()
+                    })
+                    .collect();
+
+                Ok(Some(html_element_self_closing(
+                    html_tag,
+                    attributes,
+                    child_nodes,
+                    is_self_closing,
+                )))
+            } else {
+                log::error!("invalid tag: {}", tag_name);
+                Err(ParseError::InvalidTag(tag_name))
+            }
+        }
+        NodeType::Text => {
+            let content = content.expect("must have a content");
+            Ok(Some(text(content)))
+        }
+        NodeType::AbstractRoot => {
+            let child_nodes_len = child_nodes.len();
+            match child_nodes_len {
+                0 => Ok(None),
+                1 => Ok(Some(child_nodes.remove(0))),
+                _ => Ok(Some(html_element("html", vec![], child_nodes))),
+            }
+        }
+        _ => Ok(None),
     }
 }
 
@@ -227,9 +220,10 @@ mod tests {
         This is footer
     </footer>
 </article>"#;
-        let node: Vec<Node<()>> = parse_simple(html).expect("must parse");
+        let expected = "<article class=\"side-to-side\"><div>\n        This is div content1\n    </div><footer>\n        This is footer\n    </footer></article>";
+        let node: Node<()> = parse_simple(html).ok().flatten().expect("must parse");
         println!("node: {:#?}", node);
-        let one = div(vec![], node);
-        println!("one: {}", one.render_to_string());
+        println!("render: {}", node.render_to_string());
+        assert_eq!(expected, node.render_to_string());
     }
 }

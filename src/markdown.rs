@@ -6,7 +6,7 @@ use std::collections::HashMap;
 #[cfg(feature = "ammonia")]
 use std::{collections::HashSet, iter::FromIterator};
 
-#[cfg(feature = "html-parser")]
+#[cfg(feature = "parse-html")]
 pub mod html_parser;
 
 /// convert markdown text to Node
@@ -379,7 +379,7 @@ impl<'a, MSG> MarkdownParser<'a, MSG> {
         #[cfg(not(feature = "ammonia"))]
         let _clean_html = inline_html.to_string();
 
-        #[cfg(feature = "html-parser")]
+        #[cfg(feature = "parse-html")]
         if let Ok(nodes) = html_parser::parse_simple(&_clean_html) {
             for node in nodes {
                 let new_node = self.run_inline_processor(node);
