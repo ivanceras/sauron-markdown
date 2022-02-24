@@ -169,7 +169,8 @@ fn process_node<MSG>(node: &rphtml::parser::Node) -> Result<Option<Node<MSG>>, P
                     })
                     .collect();
 
-                Ok(Some(html_element_self_closing(
+                Ok(Some(html_element(
+                    None,
                     html_tag,
                     attributes,
                     child_nodes,
@@ -189,7 +190,7 @@ fn process_node<MSG>(node: &rphtml::parser::Node) -> Result<Option<Node<MSG>>, P
             match child_nodes_len {
                 0 => Ok(None),
                 1 => Ok(Some(child_nodes.remove(0))),
-                _ => Ok(Some(html_element("html", vec![], child_nodes))),
+                _ => Ok(Some(html_element(None, "html", vec![], child_nodes, false))),
             }
         }
         _ => Ok(None),
