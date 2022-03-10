@@ -35,8 +35,11 @@ fn main(){
                         let mut buffer = String::new();
                         // we collect all the next
                         for child in children {
-                            if let Some(text) = child.text() {
-                                buffer += text;
+                            match child {
+                                Node::Leaf(Leaf::Text(text)) => {
+                                    buffer += text;
+                                }
+                                _ => (),
                             }
                         }
                         let hl_code = code(
