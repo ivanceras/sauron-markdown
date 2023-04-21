@@ -10,8 +10,8 @@ documentation = "https://docs.rs/sauron-markdown"
 keywords = ["md", "sauron", "node"]
 
 [dependencies]
-sauron = { version = "0.49.2", features = ["with-lookup"] }
-#sauron = { version = "0.45.1", path = "../sauron", features = ["with-lookup"] }
+#sauron = { version = "0.49.2", features = ["with-lookup"] }
+sauron = { path = "../sauron", features = ["with-lookup"] }
 pulldown-cmark = { version = "0.8"}
 thiserror = "1.0"
 log = "0.4"
