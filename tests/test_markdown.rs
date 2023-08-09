@@ -29,7 +29,8 @@ fn source_code() {
     }
 ```
         "#;
-    let expected = "<pre>\n    <code class=\"rust\">    fn main(){\n        println!(\"Hello world!\");\n    }\n</code>\n</pre>";
+    let expected =
+        "<code class=\"rust\">    fn main(){\n        println!(\"Hello world!\");\n    }\n</code>";
     let view: Node<()> = node_list(parse(md));
 
     let mut buffer = String::new();
@@ -43,7 +44,7 @@ fn code() {
     let md = r#"
 This is has some `code` and other..
         "#;
-    let expected = "<p>\n    This is has some \n    <code>code</code>\n     and other..\n</p>";
+    let expected = "<p>\n  This is has some \n  <code>code</code>\n   and other..\n</p>";
     let view: Node<()> = node_list(parse(md));
 
     let mut buffer = String::new();
@@ -132,7 +133,7 @@ fn test_list() {
 }
 
 #[test]
-fn test_md() {
+fn test_md1() {
     let md = r#"
 An h1 header
 ============
@@ -142,20 +143,14 @@ look like:
   * the other one"#;
     let view: Node<()> = node_list(parse(md));
 
-    let expected = r#"<p>
-    <h1>An h1 header</h1>
-    <p>look like:</p>
-    <ul>
-        <li>this one</li>
-        <li>that one</li>
-        <li>the other one</li>
-    </ul>
-</p>"#;
+    let expected = "<h1>An h1 header</h1>\
+    <p>look like:</p><ul>\
+        <li>this one</li>\
+        <li>that one</li>\
+        <li>the other one</li>\
+    </ul>";
 
-    let mut buffer = String::new();
-    view.render(&mut buffer).unwrap();
-    println!("view: {}", buffer);
-    assert_eq!(expected, buffer);
+    assert_eq!(expected, view.render_to_string());
 }
 
 #[test]
@@ -165,19 +160,14 @@ fn test_md_links() {
 
 [link with title](http://nodeca.github.io/pica/demo/ "title text!")"#;
     let view: Node<()> = node_list(parse(md));
-    let expected = r#"<p>
-    <p>
-        <a href="http://dev.nodeca.com" title="">link text</a>
-    </p>
-    <p>
-        <a href="http://nodeca.github.io/pica/demo/" title="title text!">link with title</a>
-    </p>
-</p>"#;
+    let expected = "<p>\
+            <a href=\"http://dev.nodeca.com\" title=\"\">link text</a>\
+        </p>\
+        <p>\
+            <a href=\"http://nodeca.github.io/pica/demo/\" title=\"title text!\">link with title</a>\
+        </p>";
 
-    let mut buffer = String::new();
-    view.render(&mut buffer).unwrap();
-    println!("view: {}", buffer);
-    assert_eq!(expected, buffer);
+    assert_eq!(expected, view.render_to_string());
 }
 
 #[test]
@@ -193,36 +183,33 @@ fn test_md_tables() {
 }
 "#;
     let view: Node<()> = node_list(parse(md));
-    let expected = r#"<p>
-    <h2>Tables</h2>
-    <table>
-        <tr>
-            <th class="text-left">Option</th>
-            <th class="text-right">Description</th>
-        </tr>
-        <tr>
-            <td class="text-left">data</td>
-            <td class="text-right">path to data files to supply the data that will be passed into templates.</td>
-        </tr>
-        <tr>
-            <td class="text-left">engine</td>
-            <td class="text-right">engine to be used for processing templates. Handlebars is the default.</td>
-        </tr>
-        <tr>
-            <td class="text-left">ext</td>
-            <td class="text-right">extension to be used for dest files.</td>
-        </tr>
-        <tr>
-            <td class="text-left">}</td>
-            <td class="text-right"></td>
-        </tr>
-    </table>
-</p>"#;
+    let expected = "<p>\
+    <h2>Tables</h2>\
+    <table>\
+        <tr>\
+            <th class=\"text-left\">Option</th>\
+            <th class=\"text-right\">Description</th>\
+        </tr>\
+        <tr>\
+            <td class=\"text-left\">data</td>\
+            <td class=\"text-right\">path to data files to supply the data that will be passed into templates.</td>\
+        </tr>\
+        <tr>\
+            <td class=\"text-left\">engine</td>\
+            <td class=\"text-right\">engine to be used for processing templates. Handlebars is the default.</td>\
+        </tr>\
+        <tr>\
+            <td class=\"text-left\">ext</td>\
+            <td class=\"text-right\">extension to be used for dest files.</td>\
+        </tr>\
+        <tr>\
+            <td class=\"text-left\">}</td>\
+            <td class=\"text-right\"></td>\
+        </tr>\
+    </table>\
+</p>";
 
-    let mut buffer = String::new();
-    view.render(&mut buffer).unwrap();
-    println!("view: {}", buffer);
-    assert_eq!(expected, buffer);
+    assert_eq!(expected, view.render_to_string());
 }
 
 #[test]
