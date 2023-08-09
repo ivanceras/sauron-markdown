@@ -1,4 +1,4 @@
-use sauron::prelude::*;
+use sauron::{html::node_list, *};
 
 #[test]
 fn anchor() {
@@ -6,7 +6,7 @@ fn anchor() {
 <a name="n" href="javascript:alert('xss')">*you*</a>
 "#;
     println!("md: {}", md);
-    let view: Node<()> = sauron_markdown::markdown(md);
+    let view: Node<()> = node_list(sauron_markdown::parse(md));
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
     println!("view: {}", buffer);
@@ -27,7 +27,7 @@ fn blockqupte_xss() {
 > href="javascript:alert('xss')">*you*</a>
 "#;
     println!("md: {}", md);
-    let view: Node<()> = sauron_markdown::markdown(md);
+    let view: Node<()> = node_list(sauron_markdown::parse(md));
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
     println!("view: {}", buffer);

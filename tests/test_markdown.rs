@@ -1,4 +1,4 @@
-use sauron_markdown::sauron::prelude::*;
+use sauron_markdown::sauron::{html::node_list, *};
 use sauron_markdown::*;
 
 #[test]
@@ -12,7 +12,7 @@ fn test_inline_htmls() {
     </footer>
 </article>"#;
 
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
 
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
@@ -30,7 +30,7 @@ fn source_code() {
 ```
         "#;
     let expected = "<pre>\n    <code class=\"rust\">    fn main(){\n        println!(\"Hello world!\");\n    }\n</code>\n</pre>";
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
 
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
@@ -44,7 +44,7 @@ fn code() {
 This is has some `code` and other..
         "#;
     let expected = "<p>\n    This is has some \n    <code>code</code>\n     and other..\n</p>";
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
 
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
@@ -73,7 +73,7 @@ Duplicated footnote reference[^second].
         "#;
 
     let expected = "<p><h3><a href=\"https://github.com/markdown-it/markdown-it-footnote\" title=\"\">Footnotes</a></h3><p>Footnote 1 link<sup class=\"footnote-reference\"><a href=\"#first\">1</a></sup>.</p><p>Footnote 2 link<sup class=\"footnote-reference\"><a href=\"#second\">2</a></sup>.</p><p>Inline footnote^<!--separator-->[<!--separator-->Text of inline footnote<!--separator-->]<!--separator--> definition.</p><p>Duplicated footnote reference<sup class=\"footnote-reference\"><a href=\"#second\">2</a></sup>.</p><footer class=\"footnote-definition\" id=\"first\"><sup class=\"footnote-label\">1</sup><p>Footnote <strong>can have markup</strong></p></footer><pre><code>and multiple paragraphs.\n</code></pre><footer class=\"footnote-definition\" id=\"second\"><sup class=\"footnote-label\">2</sup><p>Footnote text.</p></footer></p>";
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
 
     assert_eq!(expected, view.render_to_string());
 }
@@ -86,7 +86,7 @@ fn test_md_with_html() {
 
     let expected =
 "<p>\n    <p>\n        <a href=\"link.html\" title=\"\">Hello</a>\n        \n\n    </p>\n    <img src=\"img.jpeg\"/>\n</p>";
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
 
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
@@ -102,7 +102,7 @@ fn test_md_with_image() {
 
     let expected =
             "<p>\n    <a href=\"link.html\" title=\"\">Hello</a>\n    \n\n    <img src=\"img.jpeg\" title=\"Image title\"/>\n</p>";
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
 
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
@@ -124,7 +124,7 @@ fn test_list() {
     - sublist 3
 "#;
     let expected = r#"<p><h1>List</h1><ul><li>list 1</li><li>list 2</li><li>list 3<ul><li>sublist 1<ul><li>some other sublist A</li><li>some other sublist B</li></ul></li><li>sublist 2</li><li>sublist 3</li></ul></li></ul></p>"#;
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
     let mut buffer = String::new();
     view.render_compressed(&mut buffer).unwrap();
     println!("view: {}", buffer);
@@ -140,7 +140,7 @@ look like:
   * this one
   * that one
   * the other one"#;
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
 
     let expected = r#"<p>
     <h1>An h1 header</h1>
@@ -164,7 +164,7 @@ fn test_md_links() {
 [link text](http://dev.nodeca.com)
 
 [link with title](http://nodeca.github.io/pica/demo/ "title text!")"#;
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
     let expected = r#"<p>
     <p>
         <a href="http://dev.nodeca.com" title="">link text</a>
@@ -192,7 +192,7 @@ fn test_md_tables() {
 | ext    | extension to be used for dest files. |
 }
 "#;
-    let view: Node<()> = markdown(md);
+    let view: Node<()> = node_list(parse(md));
     let expected = r#"<p>
     <h2>Tables</h2>
     <table>
@@ -235,31 +235,7 @@ fn test_md_with_svgbob_processor() {
       `------'       +-------+
 ```
             "#;
-    let node: Node<()> = markdown_with_plugins(
-        md,
-        Plugins {
-            code_fence_processor: Some(Box::new(|code_fence, code| {
-                if let Some(code_fence) = code_fence {
-                    match code_fence {
-                        "bob" => {
-                            println!("processing svgbob...");
-                            let svg = svgbob::to_svg_string_compressed(code);
-                            Some(safe_html(svg))
-                        }
-                        _ => {
-                            println!("unrecognized code fence: {}", code_fence);
-                            None
-                        }
-                    }
-                } else {
-                    println!("no code fence");
-                    None
-                }
-            })),
-
-            ..Default::default()
-        },
-    );
+    let node: Node<()> = node_list(parse(md));
 
     let html = node.render_to_string();
     println!("html: {}", html);

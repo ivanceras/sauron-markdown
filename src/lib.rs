@@ -9,9 +9,7 @@
     unused_import_braces
 )]
 //! a library to parse markdown and convert it into sauron virtual node
-#[cfg(feature = "parse-html")]
-pub use markdown::html_parser;
-pub use markdown::{markdown, markdown_with_plugins, render_markdown, MarkdownParser, Plugins};
+pub use markdown::{parse, parse_with_title};
 /// reexport pulldown cmark
 pub use pulldown_cmark;
 pub use pulldown_cmark::Tag;

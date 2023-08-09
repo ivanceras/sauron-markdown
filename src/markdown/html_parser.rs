@@ -5,10 +5,16 @@ use rphtml::config::ParseOptions;
 use rphtml::parser::Doc;
 use rphtml::parser::NodeType;
 use rphtml::types::BoxDynError;
-use sauron::prelude::*;
+use sauron::html::attributes::Value;
+use sauron::html::html_element;
+use sauron::*;
 use sauron::{
-    html::tags::{HTML_SC_TAGS, HTML_TAGS, HTML_TAGS_NON_COMMON, HTML_TAGS_WITH_MACRO_NON_COMMON},
-    svg::tags::{SVG_TAGS, SVG_TAGS_NON_COMMON, SVG_TAGS_SPECIAL},
+    html::attributes::HTML_ATTRS_SPECIAL,
+    html::tags::{
+        commons::HTML_TAGS, self_closing::HTML_SC_TAGS, HTML_TAGS_NON_COMMON,
+        HTML_TAGS_WITH_MACRO_NON_COMMON,
+    },
+    svg::tags::{commons::SVG_TAGS, special::SVG_TAGS_SPECIAL, SVG_TAGS_NON_COMMON},
 };
 use std::collections::{HashMap, HashSet};
 use std::fmt;
