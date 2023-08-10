@@ -138,8 +138,6 @@ pub fn parse<MSG>(src: &str) -> Vec<Node<MSG>> {
 
 fn maybe_title<MSG>(node: &Node<MSG>) -> Option<&str> {
     if node.tag() == Some(&&"h1") {
-        println!("# an h1 here..");
-        println!("{}", node.render_to_string());
         let children = node.children();
         if children.len() == 1 {
             return children[0].as_text();
