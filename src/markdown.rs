@@ -57,12 +57,14 @@ impl<MSG> MdParser<MSG> {
                 Event::HardBreak => self.add_child(br([], [])),
                 Event::Html(html) => {
                     if self.spine.is_empty() {
-                        self.push_to_nodes(safe_html(html));
+                        self.push_to_nodes(raw_html(&html));
                     } else {
-                        self.add_child(safe_html(html))
+                        self.add_child(raw_html(&html))
                     }
                 }
-                Event::Code(content) => self.add_child(text(content)),
+                Event::Code(content) => {
+                    self.add_child(code([],[text(content)]))
+                }
                 Event::Rule => {
                     // <hr> rule is top level element
                     self.push_to_nodes(hr([], []));

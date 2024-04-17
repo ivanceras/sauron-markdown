@@ -1,5 +1,6 @@
 use sauron_markdown::sauron::{html::node_list, *};
 use sauron_markdown::*;
+use pretty_assertions::{assert_eq, assert_ne};
 
 #[test]
 fn test_inline_htmls() {
@@ -14,8 +15,7 @@ fn test_inline_htmls() {
 
     let view: Node<()> = node_list(parse(md));
 
-    let mut buffer = String::new();
-    view.render(&mut buffer).unwrap();
+    let buffer = view.render_to_string();
     println!("view: {}", buffer);
     assert_eq!(md, buffer);
 }
@@ -36,7 +36,7 @@ fn source_code() {
     let mut buffer = String::new();
     view.render(&mut buffer).unwrap();
     println!("view: {}", buffer);
-    assert_eq!(expected, buffer);
+    assert_eq!(buffer, expected);
 }
 
 #[test]
@@ -44,13 +44,12 @@ fn code() {
     let md = r#"
 This is has some `code` and other..
         "#;
-    let expected = "<p>\n  This is has some \n  <code>code</code>\n   and other..\n</p>";
+    let expected = "<p>This is has some <code>code</code> and other..</p>";
     let view: Node<()> = node_list(parse(md));
 
-    let mut buffer = String::new();
-    view.render(&mut buffer).unwrap();
+    let buffer = view.render_to_string();
     println!("view: {}", buffer);
-    assert_eq!(expected, buffer);
+    assert_eq!(buffer, expected);
 }
 
 #[test]
@@ -73,10 +72,15 @@ Duplicated footnote reference[^second].
 [^second]: Footnote text.
         "#;
 
-    let expected = "<p><h3><a href=\"https://github.com/markdown-it/markdown-it-footnote\" title=\"\">Footnotes</a></h3><p>Footnote 1 link<sup class=\"footnote-reference\"><a href=\"#first\">1</a></sup>.</p><p>Footnote 2 link<sup class=\"footnote-reference\"><a href=\"#second\">2</a></sup>.</p><p>Inline footnote^<!--separator-->[<!--separator-->Text of inline footnote<!--separator-->]<!--separator--> definition.</p><p>Duplicated footnote reference<sup class=\"footnote-reference\"><a href=\"#second\">2</a></sup>.</p><footer class=\"footnote-definition\" id=\"first\"><sup class=\"footnote-label\">1</sup><p>Footnote <strong>can have markup</strong></p></footer><pre><code>and multiple paragraphs.\n</code></pre><footer class=\"footnote-definition\" id=\"second\"><sup class=\"footnote-label\">2</sup><p>Footnote text.</p></footer></p>";
+    let expected = "<h3><a href=\"https://github.com/markdown-it/markdown-it-footnote\" title=\"\">Footnotes</a></h3><p>Footnote
+ 1 link<a href=\"first\"></a>.</p><p>Footnote 2 link<a href=\"second\"></a>.</p><p>Inline footnote^[Text of inline
+footnote] definition.</p><p>Duplicated footnote reference<a href=\"second\"></a>.</p><footer class=\"footnote-defin
+ition\" id=\"first\"><p>Footnote <strong>can have markup</strong></p></footer><code>and multiple paragraphs.\n</cod
+e><footer class=\"footnote-definition\" id=\"second\"><p>Footnote text.</p></footer>";
     let view: Node<()> = node_list(parse(md));
-
-    assert_eq!(expected, view.render_to_string());
+    let buffer = view.render_to_string();
+    println!("view: {:?}", buffer);
+    assert_eq!(buffer, expected);
 }
 
 #[test]
@@ -85,14 +89,12 @@ fn test_md_with_html() {
 [Hello](link.html)
 <img src="img.jpeg"/>"#;
 
-    let expected =
-"<p>\n    <p>\n        <a href=\"link.html\" title=\"\">Hello</a>\n        \n\n    </p>\n    <img src=\"img.jpeg\"/>\n</p>";
+    let expected = "<p><a href=\"link.html\" title=\"\">Hello</a>\n<img src=\"img.jpeg\"/></p>";
     let view: Node<()> = node_list(parse(md));
 
-    let mut buffer = String::new();
-    view.render(&mut buffer).unwrap();
-    println!("view: {}", buffer);
-    assert_eq!(expected, buffer);
+    let buffer = view.render_to_string();
+    println!("view: {:?}", buffer);
+    assert_eq!(buffer, expected);
 }
 
 #[test]
@@ -126,8 +128,7 @@ fn test_list() {
 "#;
     let expected = r#"<p><h1>List</h1><ul><li>list 1</li><li>list 2</li><li>list 3<ul><li>sublist 1<ul><li>some other sublist A</li><li>some other sublist B</li></ul></li><li>sublist 2</li><li>sublist 3</li></ul></li></ul></p>"#;
     let view: Node<()> = node_list(parse(md));
-    let mut buffer = String::new();
-    view.render_compressed(&mut buffer).unwrap();
+    let buffer = view.render_to_string();
     println!("view: {}", buffer);
     assert_eq!(expected, buffer);
 }
